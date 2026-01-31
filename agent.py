@@ -3,9 +3,8 @@ from exa_py import Exa
 
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
 
-
 def run_recruiting_agent(payload: dict):
-    criteria = payload.get("criteria", "").strip()
+    criteria = payload.get("criteria")
 
     if not criteria:
         return {
@@ -13,19 +12,28 @@ def run_recruiting_agent(payload: dict):
         }
 
     try:
-        webset = exa.websets.create({
-            "searches": [
-                {
-                    "query": criteria,
-                    "num_results": 1
-                }
-            ]
-        })
+        webset = exa.websets.create(
+            {
+                "query": criteria,
+                "entity_type": "person",
+                "num_results": 10
+            }
+        )
+
+        results = []
+
+        for r in webset.results:
+            results.append({
+                "name": r.get("name"),
+                "url": r.get("url"),
+                "description": r.get("description"),
+                "source": r.get("source")
+            })
 
         return {
-            "debug": "webset created successfully",
             "criteria": criteria,
-            "webset_id": webset.id
+            "count": len(results),
+            "results": results
         }
 
     except Exception as e:
