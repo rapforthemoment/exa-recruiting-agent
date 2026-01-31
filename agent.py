@@ -3,51 +3,53 @@ from exa_py import Exa
 
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
 
+
 def run_recruiting_agent(payload: dict):
     criteria = payload.get("criteria", "").strip()
 
     if not criteria:
-        return {"error": "No criteria provided"}
+        return {
+            "error": "No criteria provided"
+        }
 
     webset_failure = None
     search_failure = None
 
     # -----------------------------
-# 1. PRIMARY: Websets (correct params signature)
-# -----------------------------
-try:
-    webset = exa.websets.create({
-        "searches": [
-            {
-                "query": criteria,
-                "num_results": 5
-            }
-        ]
-    })
-
-    items = exa.websets.items(webset.id)
-
-    if items and items.items:
-        return {
-            "source": "websets",
-            "criteria": criteria,
-            "count": len(items.items),
-            "results": [
+    # 1. PRIMARY: Websets
+    # -----------------------------
+    try:
+        webset = exa.websets.create({
+            "searches": [
                 {
-                    "name": i.title or "Unknown",
-                    "url": i.url,
-                    "summary": (i.text or "")[:300]
+                    "query": criteria,
+                    "num_results": 5
                 }
-                for i in items.items
             ]
-        }
+        })
 
-except Exception as e:
-    webset_failure = str(e)
+        items = exa.websets.items(webset.id)
 
+        if items and items.items:
+            return {
+                "source": "websets",
+                "criteria": criteria,
+                "count": len(items.items),
+                "results": [
+                    {
+                        "name": i.title or "Unknown",
+                        "url": i.url,
+                        "summary": (i.text or "")[:300]
+                    }
+                    for i in items.items
+                ]
+            }
+
+    except Exception as e:
+        webset_failure = str(e)
 
     # -----------------------------
-    # 2. FALLBACK: Search API
+    # 2. FALLBACK: Search
     # -----------------------------
     try:
         search_results = exa.search(
@@ -74,12 +76,4 @@ except Exception as e:
     except Exception as e:
         search_failure = str(e)
 
-    # -----------------------------
-    # 3. SAFE FAILURE RESPONSE
-    # -----------------------------
-    return {
-        "error": "No results available",
-        "criteria": criteria,
-        "websets_error": webset_failure,
-        "search_error": search_failure
-    }
+    # ---------------
