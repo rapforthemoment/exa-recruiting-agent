@@ -45,30 +45,49 @@ async def search(
     payload: SearchRequest,
     x_wp_key: str = Header(None)
 ):
-    # Auth check
+    # --------------------
+    # AUTH CHECK
+    # --------------------
     if x_wp_key != WP_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
+        # --------------------
+        # STEP 4: EXPERT-FOCUSED QUERY
+        # --------------------
+        expert_query = f"""
+        {payload.criteria}
+
+        site:linkedin.com OR site:scholar.google.com OR site:about.me
+        OR site:researchgate.net OR site:medium.com
+
+        "researcher" OR "engineer" OR "consultant"
+        OR "author" OR "PhD" OR "founder"
+        """
+
         results = exa.search(
-            query=payload.criteria,
-            num_results=10
+            query=expert_query,
+            num_results=10,
+            use_autoprompt=True
         )
 
+        # --------------------
+        # SAFE RESULT FORMATTING
+        # --------------------
         formatted = []
 
         for r in results.results:
-            # SAFE extraction — no crashes
-            text = ""
+            summary_text = ""
+
             if hasattr(r, "text") and r.text:
-                text = r.text
+                summary_text = r.text
             elif hasattr(r, "highlights") and r.highlights:
-                text = " ".join(r.highlights)
+                summary_text = " ".join(r.highlights)
 
             formatted.append({
-                "title": r.title,
-                "url": r.url,
-                "summary": text[:500] if text else ""
+                "title": r.title if hasattr(r, "title") else "",
+                "url": r.url if hasattr(r, "url") else "",
+                "summary": summary_text[:500] if summary_text else ""
             })
 
         return {
