@@ -16,10 +16,8 @@ def run_recruiting_agent(payload: dict):
     # 1. PRIMARY: Websets (SDK-safe)
     # -----------------------------
     try:
-        # Step 1: create empty webset
         webset = exa.websets.create()
 
-        # Step 2: add search to webset
         exa.websets.search(
             webset_id=webset.id,
             query=criteria,
@@ -57,4 +55,29 @@ def run_recruiting_agent(payload: dict):
 
         if search_results.results:
             return {
-                "source": "search
+                "source": "search",
+                "criteria": criteria,
+                "count": len(search_results.results),
+                "results": [
+                    {
+                        "name": r.title or "Unknown",
+                        "url": r.url,
+                        "summary": (r.text or "")[:300],
+                        "score": r.score
+                    }
+                    for r in search_results.results
+                ]
+            }
+
+    except Exception as e:
+        search_failure = str(e)
+
+    # -----------------------------
+    # 3. SAFE FAILURE RESPONSE
+    # -----------------------------
+    return {
+        "error": "No results available",
+        "criteria": criteria,
+        "websets_error": webset_failure,
+        "search_error": search_failure
+    }
