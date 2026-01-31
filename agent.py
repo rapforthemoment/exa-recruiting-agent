@@ -13,36 +13,38 @@ def run_recruiting_agent(payload: dict):
     search_failure = None
 
     # -----------------------------
-    # 1. PRIMARY: Websets (SDK-safe)
-    # -----------------------------
-    try:
-        webset = exa.websets.create()
-
-        exa.websets.search(
-            webset_id=webset.id,
-            query=criteria,
-            num_results=5
-        )
-
-        items = exa.websets.items(webset.id)
-
-        if items and items.items:
-            return {
-                "source": "websets",
-                "criteria": criteria,
-                "count": len(items.items),
-                "results": [
-                    {
-                        "name": i.title or "Unknown",
-                        "url": i.url,
-                        "summary": (i.text or "")[:300]
-                    }
-                    for i in items.items
-                ]
+# 1. PRIMARY: Websets (correct params signature)
+# -----------------------------
+try:
+    webset = exa.websets.create({
+        "searches": [
+            {
+                "query": criteria,
+                "num_results": 5
             }
+        ]
+    })
 
-    except Exception as e:
-        webset_failure = str(e)
+    items = exa.websets.items(webset.id)
+
+    if items and items.items:
+        return {
+            "source": "websets",
+            "criteria": criteria,
+            "count": len(items.items),
+            "results": [
+                {
+                    "name": i.title or "Unknown",
+                    "url": i.url,
+                    "summary": (i.text or "")[:300]
+                }
+                for i in items.items
+            ]
+        }
+
+except Exception as e:
+    webset_failure = str(e)
+
 
     # -----------------------------
     # 2. FALLBACK: Search API
