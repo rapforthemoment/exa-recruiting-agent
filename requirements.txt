@@ -1,7 +1,4 @@
 fastapi
 uvicorn
-exa_py
-openai
-pandas
-tqdm
-python-dotenv
+pydantic
+exa-py>=1.0.0
