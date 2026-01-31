@@ -45,59 +45,52 @@ async def search(
     payload: SearchRequest,
     x_wp_key: str = Header(None)
 ):
-    # --------------------
-    # AUTH CHECK
-    # --------------------
     if x_wp_key != WP_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        # --------------------
-        # STEP 4: EXPERT-FOCUSED QUERY
-        # --------------------
-        expert_query = f"""
-        {payload.criteria}
+        q = payload.criteria.lower()
 
-        site:linkedin.com OR site:scholar.google.com OR site:about.me
-        OR site:researchgate.net OR site:medium.com
+        # --------------------
+        # AUTO MODE DETECTION
+        # --------------------
+        practitioner_terms = [
+            "wordpress", "developer", "agency", "designer",
+            "seo", "marketing", "florida", "california",
+            "new york", "texas", "local"
+        ]
 
-        "researcher" OR "engineer" OR "consultant"
-        OR "author" OR "PhD" OR "founder"
-        """
+        if any(term in q for term in practitioner_terms):
+            # PRACTITIONER MODE
+            search_query = f"""
+            {payload.criteria}
+
+            site:linkedin.com OR site:clutch.co OR site:upwork.com
+            OR site:about.me OR site:agency OR site:webdesign
+
+            "WordPress developer" OR "WordPress agency"
+            OR "web developer" OR "web designer"
+            """
+        else:
+            # EXPERT / RESEARCH MODE
+            search_query = f"""
+            {payload.criteria}
+
+            site:linkedin.com OR site:scholar.google.com
+            OR site:researchgate.net OR site:medium.com
+
+            "researcher" OR "engineer" OR "consultant"
+            OR "author" OR "PhD" OR "founder"
+            """
 
         results = exa.search(
-            query=expert_query,
+            query=search_query,
             num_results=10,
             use_autoprompt=True
         )
 
-        # --------------------
-        # SAFE RESULT FORMATTING
-        # --------------------
         formatted = []
 
         for r in results.results:
-            summary_text = ""
-
-            if hasattr(r, "text") and r.text:
-                summary_text = r.text
-            elif hasattr(r, "highlights") and r.highlights:
-                summary_text = " ".join(r.highlights)
-
-            formatted.append({
-                "title": r.title if hasattr(r, "title") else "",
-                "url": r.url if hasattr(r, "url") else "",
-                "summary": summary_text[:500] if summary_text else ""
-            })
-
-        return {
-            "criteria": payload.criteria,
-            "count": len(formatted),
-            "results": formatted
-        }
-
-    except Exception as e:
-        return {
-            "error": "Search failed",
-            "details": str(e)
-        }
+            summary = ""
+            if hasattr(r, "text") and r
