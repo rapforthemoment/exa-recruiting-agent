@@ -93,4 +93,25 @@ async def search(
 
         for r in results.results:
             summary = ""
-            if hasattr(r, "text") and r
+            if hasattr(r, "text") and r.text:
+                summary = r.text
+            elif hasattr(r, "highlights") and r.highlights:
+                summary = " ".join(r.highlights)
+
+            formatted.append({
+                "title": getattr(r, "title", ""),
+                "url": getattr(r, "url", ""),
+                "summary": summary[:500] if summary else ""
+            })
+
+        return {
+            "criteria": payload.criteria,
+            "count": len(formatted),
+            "results": formatted
+        }
+
+    except Exception as e:
+        return {
+            "error": "Search failed",
+            "details": str(e)
+        }
