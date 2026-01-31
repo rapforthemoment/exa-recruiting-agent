@@ -10,22 +10,25 @@ def run_recruiting_agent(payload: dict):
         return {"error": "No criteria provided"}
 
     try:
-        webset = exa.websets.create(
-            searches=[
-                {
-                    "query": criteria,
-                    "entity_type": "person"
-                }
+        search = exa.search(
+            query=criteria,
+            num_results=10,
+            exclude_domains=[
+                "facebook.com",
+                "twitter.com",
+                "instagram.com",
+                "youtube.com"
             ]
         )
 
         results = []
-        for r in webset.results:
+        for r in search.results:
             results.append({
-                "name": r.get("name"),
-                "url": r.get("url"),
-                "description": r.get("description"),
-                "source": r.get("source")
+                "title": r.title,
+                "url": r.url,
+                "snippet": r.text[:300] if r.text else "",
+                "source": r.domain,
+                "score": r.score
             })
 
         return {
@@ -36,6 +39,6 @@ def run_recruiting_agent(payload: dict):
 
     except Exception as e:
         return {
-            "error": "Websets failed",
+            "error": "Search failed",
             "details": str(e)
         }
