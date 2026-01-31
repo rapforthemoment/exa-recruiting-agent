@@ -27,7 +27,7 @@ def run_recruiting_agent(payload: dict):
                 "title": r.title,
                 "url": r.url,
                 "snippet": r.text[:300] if r.text else "",
-                "source": r.domain,
+                "source": r.url.split("/")[2] if r.url else None,
                 "score": r.score
             })
 
