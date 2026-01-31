@@ -4,48 +4,86 @@ from exa_py import Exa
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
 
 def run_recruiting_agent(payload: dict):
-    """
-    payload example:
-    {
-        "criteria": "wordpress design experts based in the US and have management experience"
-    }
-    """
-
-    criteria = payload.get("criteria", "")
+    criteria = payload.get("criteria", "").strip()
 
     if not criteria:
         return {
             "error": "No criteria provided"
         }
 
-    # 1. Search for relevant people/pages
-    search_results = exa.search(
-        query=criteria,
-        num_results=5,
-        exclude_domains=[
-            "facebook.com",
-            "twitter.com",
-            "instagram.com",
-            "youtube.com"
-        ]
-    )
+    # -----------------------------
+    # 1. PRIMARY: Try Websets
+    # -----------------------------
+    try:
+        webset = exa.websets.create(
+            query=criteria,
+            num_results=5
+        )
 
-    candidates = []
+        items = exa.websets.items(webset.id)
 
-    # 2. Convert Exa results into structured candidates
-    for r in search_results.results:
-        candidates.append({
-            "name": r.title or "Unknown",
-            "profile_url": r.url,
-            "snippet": r.text[:300] if r.text else "",
-            "source": r.domain,
-            "score": round(r.score, 2) if r.score else None
-        })
+        if items and items.items:
+            return {
+                "source": "websets",
+                "criteria": criteria,
+                "count": len(items.items),
+                "results": [
+                    {
+                        "name": i.title or "Unknown",
+                        "url": i.url,
+                        "summary": (i.text or "")[:300]
+                    }
+                    for i in items.items
+                ]
+            }
 
-    # 3. Return structured data
+    except Exception as webset_error:
+        webset_failure = str(webset_error)
+    else:
+        webset_failure = None
+
+    # -----------------------------
+    # 2. FALLBACK: Try Search API
+    # -----------------------------
+    try:
+        search_results = exa.search(
+            query=criteria,
+            num_results=3,
+            exclude_domains=[
+                "facebook.com",
+                "twitter.com",
+                "instagram.com",
+                "youtube.com"
+            ]
+        )
+
+        if search_results.results:
+            return {
+                "source": "search",
+                "criteria": criteria,
+                "count": len(search_results.results),
+                "results": [
+                    {
+                        "name": r.title or "Unknown",
+                        "url": r.url,
+                        "summary": (r.text or "")[:300],
+                        "score": r.score
+                    }
+                    for r in search_results.results
+                ]
+            }
+
+    except Exception as search_error:
+        search_failure = str(search_error)
+    else:
+        search_failure = None
+
+    # -----------------------------
+    # 3. FINAL: Safe failure
+    # -----------------------------
     return {
+        "error": "No results available",
         "criteria": criteria,
-        "count": len(candidates),
-        "results": candidates
+        "websets_error": webset_failure,
+        "search_error": search_failure
     }
-
