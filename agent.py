@@ -35,4 +35,5 @@ def run_recruiting_agent(payload: dict):
     except Exception as e:
         return {
             "error": "Websets failed",
-            "details
+            "details": str(e)
+        }
