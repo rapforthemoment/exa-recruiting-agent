@@ -14,8 +14,7 @@ def run_recruiting_agent(payload: dict):
             params={
                 "query": criteria,
                 "entity_type": "person"
-            },
-            num_results=10
+            }
         )
 
         results = []
@@ -36,5 +35,4 @@ def run_recruiting_agent(payload: dict):
     except Exception as e:
         return {
             "error": "Websets failed",
-            "details": str(e)
-        }
+            "details
