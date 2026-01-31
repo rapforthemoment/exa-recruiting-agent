@@ -2,12 +2,25 @@ import os
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
 from exa_py import Exa
 
-# -----------------------------
-# App
-# -----------------------------
+# --------------------
+# ENVIRONMENT
+# --------------------
+EXA_API_KEY = os.getenv("EXA_API_KEY")
+WP_SECRET = os.getenv("WP_SECRET")
+
+if not EXA_API_KEY:
+    raise RuntimeError("EXA_API_KEY not set")
+
+if not WP_SECRET:
+    raise RuntimeError("WP_SECRET not set")
+
+exa = Exa(EXA_API_KEY)
+
+# --------------------
+# FASTAPI APP
+# --------------------
 app = FastAPI()
 
 app.add_middleware(
@@ -18,52 +31,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------
-# Secrets
-# -----------------------------
-EXA_API_KEY = os.getenv("EXA_API_KEY")
-WP_SHARED_SECRET = "exa_wp_secret_2026"
-
-if not EXA_API_KEY:
-    raise RuntimeError("EXA_API_KEY missing")
-
-exa = Exa(api_key=EXA_API_KEY)
-
-# -----------------------------
-# Models
-# -----------------------------
+# --------------------
+# REQUEST MODEL
+# --------------------
 class SearchRequest(BaseModel):
     criteria: str
 
-# -----------------------------
-# Routes
-# -----------------------------
+# --------------------
+# ROUTES
+# --------------------
 @app.post("/search")
 async def search(
     payload: SearchRequest,
     x_wp_key: str = Header(None)
 ):
-    if x_wp_key != WP_SHARED_SECRET:
+    # Auth check
+    if x_wp_key != WP_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        response = exa.search(
+        results = exa.search(
             query=payload.criteria,
             num_results=10
         )
 
-        results = []
-        for r in response.results:
-            results.append({
+        formatted = []
+
+        for r in results.results:
+            # SAFE extraction — no crashes
+            text = ""
+            if hasattr(r, "text") and r.text:
+                text = r.text
+            elif hasattr(r, "highlights") and r.highlights:
+                text = " ".join(r.highlights)
+
+            formatted.append({
                 "title": r.title,
                 "url": r.url,
-                "snippet": r.snippet
+                "summary": text[:500] if text else ""
             })
 
         return {
             "criteria": payload.criteria,
-            "count": len(results),
-            "results": results
+            "count": len(formatted),
+            "results": formatted
         }
 
     except Exception as e:
@@ -71,7 +82,3 @@ async def search(
             "error": "Search failed",
             "details": str(e)
         }
-
-@app.get("/")
-def root():
-    return {"status": "ok"}
