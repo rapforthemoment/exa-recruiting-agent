@@ -7,16 +7,14 @@ def run_recruiting_agent(payload: dict):
     criteria = payload.get("criteria", "").strip()
 
     if not criteria:
-        return {
-            "error": "No criteria provided"
-        }
+        return {"error": "No criteria provided"}
 
     # -----------------------------
-    # 1. PRIMARY: Try Websets
+    # 1. PRIMARY: Websets (FIXED)
     # -----------------------------
     try:
         webset = exa.websets.create(
-            query=criteria,
+            prompt=criteria,   # <-- FIXED
             num_results=5
         )
 
@@ -43,18 +41,12 @@ def run_recruiting_agent(payload: dict):
         webset_failure = None
 
     # -----------------------------
-    # 2. FALLBACK: Try Search API
+    # 2. FALLBACK: Search (expected to fail if no credits)
     # -----------------------------
     try:
         search_results = exa.search(
             query=criteria,
-            num_results=3,
-            exclude_domains=[
-                "facebook.com",
-                "twitter.com",
-                "instagram.com",
-                "youtube.com"
-            ]
+            num_results=3
         )
 
         if search_results.results:
@@ -78,9 +70,6 @@ def run_recruiting_agent(payload: dict):
     else:
         search_failure = None
 
-    # -----------------------------
-    # 3. FINAL: Safe failure
-    # -----------------------------
     return {
         "error": "No results available",
         "criteria": criteria,
