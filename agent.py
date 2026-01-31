@@ -10,35 +10,39 @@ def run_recruiting_agent(payload: dict):
         return {"error": "No criteria provided"}
 
     # -----------------------------
-    # 1. PRIMARY: Websets (FIXED)
-    # -----------------------------
-    try:
-        webset = exa.websets.create(
-            prompt=criteria,   # <-- FIXED
-            num_results=5
-        )
+# 1. PRIMARY: Websets (SDK-safe)
+# -----------------------------
+try:
+    # Step 1: create empty webset
+    webset = exa.websets.create()
 
-        items = exa.websets.items(webset.id)
+    # Step 2: add a search to the webset
+    exa.websets.search(
+        webset_id=webset.id,
+        query=criteria,
+        num_results=5
+    )
 
-        if items and items.items:
-            return {
-                "source": "websets",
-                "criteria": criteria,
-                "count": len(items.items),
-                "results": [
-                    {
-                        "name": i.title or "Unknown",
-                        "url": i.url,
-                        "summary": (i.text or "")[:300]
-                    }
-                    for i in items.items
-                ]
-            }
+    items = exa.websets.items(webset.id)
 
-    except Exception as webset_error:
-        webset_failure = str(webset_error)
-    else:
-        webset_failure = None
+    if items and items.items:
+        return {
+            "source": "websets",
+            "criteria": criteria,
+            "count": len(items.items),
+            "results": [
+                {
+                    "name": i.title or "Unknown",
+                    "url": i.url,
+                    "summary": (i.text or "")[:300]
+                }
+                for i in items.items
+            ]
+        }
+
+except Exception as webset_error:
+    webset_failure = str(webset_error)
+
 
     # -----------------------------
     # 2. FALLBACK: Search (expected to fail if no credits)
