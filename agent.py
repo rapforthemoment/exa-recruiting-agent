@@ -12,8 +12,12 @@ def run_recruiting_agent(payload: dict):
     try:
         webset = exa.websets.create(
             params={
-                "query": criteria,
-                "entity_type": "person"
+                "searches": [
+                    {
+                        "query": criteria,
+                        "entity_type": "person"
+                    }
+                ]
             }
         )
 
