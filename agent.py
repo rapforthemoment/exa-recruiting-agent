@@ -7,21 +7,18 @@ def run_recruiting_agent(payload: dict):
     criteria = payload.get("criteria")
 
     if not criteria:
-        return {
-            "error": "No criteria provided"
-        }
+        return {"error": "No criteria provided"}
 
     try:
         webset = exa.websets.create(
-            {
+            params={
                 "query": criteria,
-                "entity_type": "person",
-                "num_results": 10
-            }
+                "entity_type": "person"
+            },
+            num_results=10
         )
 
         results = []
-
         for r in webset.results:
             results.append({
                 "name": r.get("name"),
