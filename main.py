@@ -8,4 +8,6 @@ def recruit(payload: dict, x_wp_key: str = Header(None)):
     if x_wp_key != "replace-this-with-your-own-secret":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    return run_recruiting_agent(payload)
+    result = run_recruiting_agent(payload)
+    return result
+
